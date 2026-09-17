@@ -1,5 +1,5 @@
 // mi-paiai web UI templates.
-export const APP_VERSION = '0.9.0';
+export const APP_VERSION = '0.9.1';
 
 import { PROVIDER_PRESETS, PROVIDER_GROUPS, DEFAULT_PROVIDER_ID } from './providers.js';
 

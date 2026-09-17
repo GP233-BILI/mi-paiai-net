@@ -13,7 +13,7 @@ RUN pnpm install --frozen-lockfile
 COPY apps/cli/src ./apps/cli/src
 COPY apps/web/src ./apps/web/src
 COPY packages/core/src ./packages/core/src
-RUN pnpm build
+RUN pnpm --filter @mi-paiai/core build && pnpm --filter @mi-paiai/web build
 
 FROM node:20-bookworm-slim AS runtime
 
