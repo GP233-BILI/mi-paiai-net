@@ -1,0 +1,22 @@
+{
+  "name": "mi-paiai",
+  "version": "0.9.0",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "pnpm build && node --test tests/*.test.mjs",
+    "clean": "turbo run clean",
+    "privacy-check": "node scripts/privacy-check.mjs"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.2"
+  },
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=20"
+  }
+}

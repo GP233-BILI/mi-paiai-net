@@ -1,0 +1,37 @@
+provider: openai
+openai:
+  model: gpt-4o-mini
+  baseURL: https://api.openai.com/v1
+  apiKey: "YOUR_API_KEY"
+prompt:
+  system: 你是一个友好、简洁的小爱音箱智能助手。
+callAIKeywords:
+  - "请"
+  - "你"
+models:
+  - gpt-4o-mini
+  - deepseek-chat
+speakers:
+  - id: living-room
+    name: 客厅音箱
+    enabled: true
+    userId: "YOUR_XIAOMI_USER_ID"
+    password: "YOUR_XIAOMI_PASSWORD"
+    passToken: ""
+    did: "小爱音箱"
+    model: gpt-4o-mini
+    thinkingLevel: default
+    voiceControl: true
+  - id: study-room
+    name: 书房音箱
+    enabled: false
+    userId: "SECOND_XIAOMI_USER_ID"
+    password: "SECOND_XIAOMI_PASSWORD"
+    passToken: ""
+    did: "小爱音箱"
+    model: deepseek-chat
+    thinkingLevel: low
+    voiceControl: true
+ttsCommand:
+  - 5
+  - 1

@@ -1,0 +1,23 @@
+{
+  "name": "@mi-paiai/cli",
+  "version": "0.9.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "mi-paiai": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@mi-paiai/core": "workspace:*",
+    "commander": "^12.1.0",
+    "yaml": "^2.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "typescript": "^5.8.2"
+  }
+}

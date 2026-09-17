@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.turbo/
+coverage/
+*.log
+*.tgz
+*.tsbuildinfo
+.DS_Store
+
+# never commit user data or credentials
+data/
+config/
+secrets/
+.mi.json
+.env
+.npmrc
+.tmp-*

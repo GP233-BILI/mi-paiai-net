@@ -1,0 +1,33 @@
+services:
+  mi-paiai:
+    image: ghcr.io/clawpai/mi-paiai:latest
+    container_name: mi-paiai
+    restart: unless-stopped
+    ports:
+      - "36592:36592"
+    environment:
+      NODE_ENV: production
+      MIPAIAI_CONFIG_DIR: /app/config
+      PORT: "36592"
+      AUTH_USERNAME_FILE: /run/secrets/auth_username
+      AUTH_PASSWORD_FILE: /run/secrets/auth_password
+      AUTH_SECRET_FILE: /run/secrets/auth_secret
+    volumes:
+      - ./data/config:/app/config
+      - ./data/secrets:/run/secrets:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid,nodev
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    pids_limit: 200
+    stop_grace_period: 30s
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:36592/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
