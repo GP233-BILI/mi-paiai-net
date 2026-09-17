@@ -1,10 +1,6 @@
 <div align="center">
 
-# ☁️ mi-paiai
-
-### 把小爱音箱接入你选择的大模型
-
-多音箱隔离 · 网页管理 · 语音切换模型 · 实时生效 · 多架构 Docker
+<img src="./docs/banner.svg" alt="mi-paiai" width="880">
 
 [![CI](https://github.com/clawpai/mi-paiai/actions/workflows/docker.yml/badge.svg)](https://github.com/clawpai/mi-paiai/actions/workflows/docker.yml)
 [![Container](https://img.shields.io/badge/GHCR-amd64%20%7C%20arm64%20%7C%20armv7-2496ED?logo=docker&logoColor=white)](https://github.com/clawpai/mi-paiai/pkgs/container/mi-paiai)
@@ -168,6 +164,8 @@ docker run -d \
 - [配置与厂商教程](./docs/CONFIGURATION.md)
 - [语音控制教程](./docs/VOICE_COMMANDS.md)
 - [安全、隐私与故障排查](./docs/SECURITY.md)
+- [贡献指南](./CONTRIBUTING.md)
+- [安全策略](./SECURITY.md)
 - [上游署名与修改说明](./NOTICE.md)
 
 ## 🧪 本地开发
