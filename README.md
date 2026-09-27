@@ -25,6 +25,7 @@
 - **一键读取模型**：调用当前接口的 `/models`，自动合并模型目录。
 - **语音切换模型与思考等级**：支持模型名、模糊名称和序号。
 - **安全加固**：登录保护、会话限制、CSRF 阻断、密钥脱敏、原子写配置、只读容器、非 root、capabilities 全部丢弃。
+- **可选的联网搜索**：默认关闭；开启后由模型判断是否需要实时信息并生成搜索词，再用 Tavily 检索，结果作为不可信资料注入回答，带缓存、超时和 SSRF 防护。
 - **多架构镜像**：`linux/amd64`、`linux/arm64`、`linux/arm/v7`。
 
 ## 🧭 工作方式
@@ -162,6 +163,7 @@ docker run -d \
 
 - [完整安装教程](./docs/INSTALLATION.md)
 - [配置与厂商教程](./docs/CONFIGURATION.md)
+- [联网搜索与第三方 TTS](./docs/WEB_SEARCH_AND_TTS.md)
 - [语音控制教程](./docs/VOICE_COMMANDS.md)
 - [安全、隐私与故障排查](./docs/SECURITY.md)
 - [贡献指南](./CONTRIBUTING.md)

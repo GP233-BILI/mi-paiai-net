@@ -16,6 +16,7 @@ import {
 } from './config.js';
 import { SpeakerManager, type SpeakerRuntimeEvent, type SpeakerRuntimeStatus } from './speaker-manager.js';
 import { HTML, LOGIN_HTML, APP_VERSION } from './ui.js';
+import { buildVolcanoTtsRequest } from './volcano-tts.js';
 
 console.log('Starting mi-paiai...');
 
@@ -183,16 +184,25 @@ function createFixedWindowLimiter(limit: number, windowMs: number) {
 
 function requestVolcanoTts(config: WebConfig, text: string, speaker: string): Promise<Buffer> {
   const volcano = config.tts && config.tts.provider === 'volcano' ? config.tts.volcano : undefined;
-  if (!volcano?.appId || !volcano.accessToken) {
-    return Promise.reject(new Error('火山引擎配置不完整'));
+
+  let built: { headers: Record<string, string>; body: string };
+  try {
+    built = buildVolcanoTtsRequest({
+      credential: volcano,
+      text,
+      speaker,
+      uid: config.speakers.find((entry) => entry.enabled)?.userId,
+      requestId: nanoid(),
+    });
+  } catch (error) {
+    return Promise.reject(error);
   }
 
-  const postData = JSON.stringify({
-    app: { appid: volcano.appId, token: volcano.accessToken, cluster: 'volcano_tts' },
-    user: { uid: config.speakers.find((speaker) => speaker.enabled)?.userId || 'user1' },
-    audio: { voice_type: speaker, encoding: 'mp3', rate: 24000 },
-    request: { reqid: nanoid(), text, text_type: 'plain', operation: 'query' },
-  });
+  const postData = built.body;
+  const headers: Record<string, string | number> = {
+    ...built.headers,
+    'Content-Length': Buffer.byteLength(postData),
+  };
 
   return new Promise((resolve, reject) => {
     let settled = false;
@@ -209,11 +219,7 @@ function requestVolcanoTts(config: WebConfig, text: string, speaker: string): Pr
         path: '/api/v1/tts',
         method: 'POST',
         timeout: 20_000,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer; ' + volcano.accessToken,
-          'Content-Length': Buffer.byteLength(postData),
-        },
+        headers,
       },
       (response) => {
         const chunks: Buffer[] = [];
@@ -615,6 +621,7 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
 
   app.get(ttsSpeakersPath, (_req, res) => {
     res.json([
+      { name: '豆包通用（新版音色ID示例）', gender: '通用', speaker: 'BV001' },
       { name: '湾区大叔', gender: '男', speaker: 'zh_male_wanqudashu_moon_bigtts' },
       { name: '呆萌川妹', gender: '女', speaker: 'zh_female_daimengchuanmei_moon_bigtts' },
       { name: '广州德哥', gender: '男', speaker: 'zh_male_guozhoudege_moon_bigtts' },

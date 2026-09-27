@@ -65,6 +65,9 @@ test('creates a public-safe OpenAI default config without embedding secrets', ()
   assert.equal(config.speakers.length, 1);
   assert.equal(config.speakers[0].password, '');
   assert.equal(config.openai.apiKey, '');
+  assert.deepEqual(config.ttsCommand, [5, 3]);
+  assert.deepEqual(config.wakeUpCommand, [5, 1]);
+  assert.equal(config.webSearch.enabled, false);
   if (process.platform !== 'win32') {
     assert.equal(statSync(path).mode & 0o777, 0o600);
   }
@@ -109,6 +112,45 @@ test('blank incoming secrets preserve each speaker independently', () => {
   assert.equal(updated.openai.apiKey, 'api-key');
   assert.equal(updated.speakers[0].password, 'speaker-password');
   assert.equal(updated.speakers[1].password, 'second-password');
+});
+
+test('migrates old TTS commands to L05C and preserves explicit TTS disable', () => {
+  const { path } = temporaryConfig();
+  const migrated = saveConfig(path, validConfig({ ttsCommand: [5, 1] }));
+  assert.deepEqual(migrated.ttsCommand, [5, 3]);
+  assert.deepEqual(migrated.wakeUpCommand, [5, 1]);
+  const disabled = saveConfig(path, validConfig({ ttsCommand: null, wakeUpCommand: null }));
+  assert.equal(disabled.ttsCommand, null);
+  assert.equal(disabled.wakeUpCommand, null);
+  assert.equal(loadConfig(path).ttsCommand, null);
+});
+
+test('keeps the Volcano API key secret and never returns it to the browser', () => {
+  const { path } = temporaryConfig();
+  const saved = saveConfig(path, validConfig({
+    tts: {
+      provider: 'volcano',
+      volcano: { apiKey: 'volcano-secret-key', cluster: 'volcano_tts' },
+    },
+  }));
+  assert.equal(saved.tts.volcano.apiKey, 'volcano-secret-key');
+  assert.equal(saved.tts.volcano.cluster, 'volcano_tts');
+
+  const publicView = publicConfig(saved);
+  assert.equal(publicView.config.tts.volcano.apiKey, '');
+  assert.equal(publicView.secretsConfigured.ttsVolcanoApiKey, true);
+  assert.doesNotMatch(JSON.stringify(publicView), /volcano-secret-key/);
+});
+
+test('keeps the stored Volcano API key when the form submits an empty value', () => {
+  const { path } = temporaryConfig();
+  saveConfig(path, validConfig({
+    tts: { provider: 'volcano', volcano: { apiKey: 'volcano-secret-key' } },
+  }));
+  const updated = saveConfig(path, validConfig({
+    tts: { provider: 'volcano', volcano: { apiKey: '' } },
+  }));
+  assert.equal(updated.tts.volcano.apiKey, 'volcano-secret-key');
 });
 
 test('voice selection changes only the requested speaker', () => {

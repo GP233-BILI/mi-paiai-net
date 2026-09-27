@@ -32,6 +32,33 @@ speakers:
     model: deepseek-chat
     thinkingLevel: low
     voiceControl: true
-ttsCommand:
+# L05C / Play：先唤醒，再播报
+wakeUpCommand:
   - 5
   - 1
+ttsCommand:
+  - 5
+  - 3
+
+# 联网搜索（默认关闭）
+webSearch:
+  enabled: false
+  decision: model
+  endpoint: https://api.tavily.com/search
+  apiKey: "YOUR_TAVILY_API_KEY"
+  maxResults: 5
+  timeoutMs: 8000
+  cacheTtlSeconds: 600
+
+# 第三方 TTS（可选，默认不启用）
+# tts:
+#   provider: volcano
+#   volcano:
+#     # 新版控制台：单个 API Key，通过 x-api-key 发送
+#     apiKey: "YOUR_VOLCANO_API_KEY"
+#     cluster: volcano_tts
+#     # 旧版控制台兼容字段
+#     # appId: "YOUR_APP_ID"
+#     # accessToken: "YOUR_ACCESS_TOKEN"
+#   defaultSpeaker: BV001
+# publicURL: "http://YOUR_LAN_IP:36592"

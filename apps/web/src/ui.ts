@@ -526,6 +526,29 @@ ${PROVIDER_OPTIONS_HTML}
       </div>
       <div class="card">
         <div class="card-head">
+          <div class="card-ico"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 17h-2v-2h2v2zm2.1-7.8-.9.9c-.7.7-1.2 1.2-1.2 2.4h-2c0-1.7.5-2.6 1.7-3.8l1.1-1.1c.4-.4.6-.9.6-1.5a2.4 2.4 0 0 0-4.8 0h-2a4.4 4.4 0 0 1 8.8 0c0 1.2-.5 2.3-1.3 3.1z"/></svg></div>
+          <div><div class="card-title">联网搜索</div><div class="card-desc">模型先判断是否需要实时信息，再调用 Tavily 搜索</div></div>
+        </div>
+        <div class="card-body">
+          <div class="grid">
+            <div class="field" style="justify-content:center;">
+              <label class="switch"><input type="checkbox" id="webSearchEnabled"><span class="track"></span>启用联网搜索</label>
+              <div class="hint">默认关闭；启用后每次问题会先增加一次 true / false 判断请求。</div>
+            </div>
+            <div class="field">
+              <label>Tavily API Key <span class="tag" id="webSearchKeyTag" style="display:none;">已保存</span></label>
+              <input type="password" id="webSearchApiKey" spellcheck="false" placeholder="tvly-...">
+              <div class="hint">每月免费额度为 1,000 credits；当前使用 basic 搜索，每次实际搜索约 1 credit。</div>
+            </div>
+          </div>
+          <div class="grid" style="margin-top:14px;">
+            <div class="field"><label>每次最多来源</label><input type="number" id="webSearchMaxResults" min="1" max="10" step="1"><div class="hint">建议 3～5 条，减少延迟和上下文长度。</div></div>
+            <div class="field"><label>搜索缓存（秒）</label><input type="number" id="webSearchCacheTtl" min="0" max="3600" step="60"><div class="hint">相同问题在缓存期内不会重复消耗 Tavily 额度。</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
           <div class="card-ico"><svg viewBox="0 0 24 24"><path d="M4 4h16v2H4V4zm0 5h16v2H4V9zm0 5h10v2H4v-2zm0 5h10v2H4v-2z"/></svg></div>
           <div><div class="card-title">模型目录</div><div class="card-desc">点击任意模型即可设为默认模型；语音指令按序号或 ID 切换</div></div>
         </div>
@@ -598,17 +621,41 @@ ${PROVIDER_OPTIONS_HTML}
             </div>
             <div class="field" style="justify-content:center;">
               <label class="switch"><input type="checkbox" id="ttsCommandEnabled"><span class="track"></span>启用 TTS Command</label>
-              <div class="hint">部分机型需要开启后才会播放语音</div>
+              <div class="hint">L05C（Play）请同时配置唤醒 5,1 和播报 5,3。</div>
             </div>
+          </div>
+          <div class="grid" style="margin-top:14px;">
+            <div class="field"><label>唤醒 Command 服务</label><input type="number" id="wakeUpCommandService" min="0" max="10000" step="1" value="5"><div class="hint">L05C：5</div></div>
+            <div class="field"><label>唤醒 Command 动作</label><input type="number" id="wakeUpCommandAction" min="0" max="10000" step="1" value="1"><div class="hint">L05C：1</div></div>
+          </div>
+          <div class="grid" style="margin-top:14px;">
+            <div class="field"><label>播报 Command 服务</label><input type="number" id="ttsCommandService" min="0" max="10000" step="1" value="5"><div class="hint">L05C：5</div></div>
+            <div class="field"><label>播报 Command 动作</label><input type="number" id="ttsCommandAction" min="0" max="10000" step="1" value="3"><div class="hint">L05C：3</div></div>
           </div>
           <div id="ttsVolcanoConfig" style="display:none;margin-top:16px;">
             <div class="grid">
+              <div class="field">
+                <label>API Key <span class="tag" id="ttsVolcanoKeyTag" style="display:none;">已保存</span></label>
+                <input type="text" id="ttsVolcanoApiKey" spellcheck="false" placeholder="新版控制台 API Key">
+                <div class="hint">控制台 → 语音合成 → 服务接口认证信息，复制 API Key（推荐）</div>
+              </div>
+              <div class="field">
+                <label>默认音色</label>
+                <input type="text" id="ttsDefaultSpeaker" list="ttsSpeakerList" spellcheck="false" placeholder="BV001">
+                <datalist id="ttsSpeakerList"></datalist>
+                <div class="hint">从控制台复制「音色 ID」，例如 BV001；也可直接手填</div>
+              </div>
+            </div>
+            <details style="margin-top:14px;">
+              <summary>旧版控制台：App ID + Access Token</summary>
+              <div class="grid" style="margin-top:12px;">
               <div class="field"><label>App ID</label><input type="text" id="ttsVolcanoAppId" spellcheck="false" placeholder="火山引擎 AppId"></div>
               <div class="field"><label>Access Token <span class="tag" id="ttsTokenTag" style="display:none;">已保存</span></label><input type="password" id="ttsVolcanoAccessToken" spellcheck="false" placeholder="火山引擎 AccessToken"></div>
             </div>
+            </details>
             <div class="grid" style="margin-top:14px;">
-              <div class="field"><label>默认音色</label><select id="ttsDefaultSpeaker"></select></div>
               <div class="field"><label>对外地址</label><input type="text" id="publicURL" spellcheck="false" placeholder="http://NAS_IP:36592"><div class="hint">必须能被小爱音箱访问到</div></div>
+              <div class="field"><label>集群 Cluster</label><input type="text" id="ttsVolcanoCluster" spellcheck="false" placeholder="volcano_tts"><div class="hint">默认 volcano_tts，一般不用改</div></div>
             </div>
           </div>
         </div>
@@ -1082,16 +1129,32 @@ ${PROVIDER_OPTIONS_HTML}
         prompt: { system: q('systemPrompt').value.trim() },
         callAIKeywords: q('callAIKeywords').value.split(/\\r?\\n/).map(function (item) { return item.trim(); }).filter(Boolean),
         models: currentModels(),
-        speakers: speakers
+        speakers: speakers,
+        ttsCommand: q('ttsCommandEnabled').checked
+          ? [Number(q('ttsCommandService').value) || 5, Number(q('ttsCommandAction').value) || 3]
+          : null,
+        wakeUpCommand: q('ttsCommandEnabled').checked
+          ? [Number(q('wakeUpCommandService').value) || 5, Number(q('wakeUpCommandAction').value) || 1]
+          : null,
+        webSearch: {
+          enabled: q('webSearchEnabled').checked,
+          decision: 'model',
+          endpoint: 'https://api.tavily.com/search',
+          apiKey: q('webSearchApiKey').value,
+          maxResults: Number(q('webSearchMaxResults').value) || 5,
+          timeoutMs: 8000,
+          cacheTtlSeconds: Number(q('webSearchCacheTtl').value) || 600
+        }
       };
-      if (q('ttsCommandEnabled').checked) config.ttsCommand = [3, 5];
       var ttsProvider = q('ttsProvider').value;
       if (ttsProvider) {
         config.tts = { provider: ttsProvider };
         if (ttsProvider === 'volcano') {
           config.tts.volcano = {
+            apiKey: q('ttsVolcanoApiKey').value.trim(),
             appId: q('ttsVolcanoAppId').value.trim(),
-            accessToken: q('ttsVolcanoAccessToken').value.trim()
+            accessToken: q('ttsVolcanoAccessToken').value.trim(),
+            cluster: q('ttsVolcanoCluster').value.trim() || 'volcano_tts'
           };
           config.tts.defaultSpeaker = q('ttsDefaultSpeaker').value;
           var publicURL = q('publicURL').value.trim();
@@ -1101,19 +1164,20 @@ ${PROVIDER_OPTIONS_HTML}
       return config;
     }
     async function loadTtsSpeakers(selected) {
-      var select = q('ttsDefaultSpeaker');
+      var input = q('ttsDefaultSpeaker');
+      var list = q('ttsSpeakerList');
       try {
         var res = await apiFetch('/api/tts-speakers');
-        var list = await res.json();
-        select.replaceChildren();
-        (list || []).forEach(function (item) {
+        var speakers = await res.json();
+        list.replaceChildren();
+        (speakers || []).forEach(function (item) {
           var option = document.createElement('option');
           option.value = item.speaker;
           option.textContent = item.name + '（' + item.gender + '）';
-          select.appendChild(option);
+          list.appendChild(option);
         });
-        if (selected) select.value = selected;
-      } catch (error) { /* 音色列表不可用时保持空 */ }
+      } catch (error) { /* 音色列表不可用时仍可手动填写 */ }
+      input.value = selected || input.value || '';
     }
     async function loadConfig() {
       var res = await apiFetch('/api/config');
@@ -1121,12 +1185,19 @@ ${PROVIDER_OPTIONS_HTML}
       var data = await res.json();
       var cfg = data.config || {};
       secrets = data.secretsConfigured || { speakers: {} };
+      var volcanoKeyConfigured = Boolean(data.secretsConfigured && data.secretsConfigured.ttsVolcanoApiKey);
       q('aiProvider').value = cfg.provider || 'sub2api';
       q('baseURL').value = (cfg.openai && cfg.openai.baseURL) || 'https://api.openai.com/v1';
       q('baseURL').dataset.autoUrl = (aiProviders[q('aiProvider').value] || {}).url || '';
       q('model').value = (cfg.openai && cfg.openai.model) || 'gpt-5.6-luna';
       q('apiKey').value = '';
       q('apiKeyTag').style.display = secrets.openaiApiKey ? '' : 'none';
+      var search = cfg.webSearch || {};
+      q('webSearchEnabled').checked = search.enabled === true;
+      q('webSearchApiKey').value = '';
+      q('webSearchKeyTag').style.display = secrets.webSearchApiKey ? '' : 'none';
+      q('webSearchMaxResults').value = search.maxResults || 5;
+      q('webSearchCacheTtl').value = search.cacheTtlSeconds === undefined ? 600 : search.cacheTtlSeconds;
       q('systemPrompt').value = (cfg.prompt && cfg.prompt.system) || '';
       q('callAIKeywords').value = (cfg.callAIKeywords || []).join('\\n');
       models = cfg.models || [];
@@ -1140,11 +1211,18 @@ ${PROVIDER_OPTIONS_HTML}
       updateSelectionBar();
       var tts = cfg.tts || {};
       q('ttsProvider').value = tts.provider || '';
-      q('ttsCommandEnabled').checked = Array.isArray(cfg.ttsCommand);
+      q('ttsCommandEnabled').checked = cfg.ttsCommand !== null && cfg.ttsCommand !== undefined;
+       q('wakeUpCommandService').value = Array.isArray(cfg.wakeUpCommand) ? cfg.wakeUpCommand[0] : 5;
+       q('wakeUpCommandAction').value = Array.isArray(cfg.wakeUpCommand) ? cfg.wakeUpCommand[1] : 1;
+       q('ttsCommandService').value = Array.isArray(cfg.ttsCommand) ? cfg.ttsCommand[0] : 5;
+       q('ttsCommandAction').value = Array.isArray(cfg.ttsCommand) ? cfg.ttsCommand[1] : 3;
       if (tts.volcano) {
         q('ttsVolcanoAppId').value = tts.volcano.appId || '';
+        q('ttsVolcanoApiKey').value = '';
+        q('ttsVolcanoCluster').value = tts.volcano.cluster || 'volcano_tts';
         q('ttsVolcanoAccessToken').value = '';
       }
+      q('ttsVolcanoKeyTag').style.display = volcanoKeyConfigured ? '' : 'none';
       q('ttsTokenTag').style.display = secrets.ttsVolcanoAccessToken ? '' : 'none';
       q('publicURL').value = cfg.publicURL || '';
       await loadTtsSpeakers(tts.defaultSpeaker);

@@ -10,6 +10,7 @@ import {
 import { dirname } from 'node:path';
 import YAML from 'yaml';
 import { DEFAULT_PROVIDER_ID, isKnownProviderId } from './providers.js';
+import type { WebSearchConfig } from './web-search.js';
 
 export type TtsProvider = 'edge' | 'volcano' | 'openai';
 export type ThinkingLevel = 'default' | 'minimal' | 'low' | 'medium' | 'high';
@@ -40,22 +41,26 @@ export interface WebConfig {
   callAIKeywords: string[];
   models: string[];
   speakers: SpeakerConfig[];
-  ttsCommand?: [number, number];
+  ttsCommand: [number, number] | null;
+  wakeUpCommand: [number, number] | null;
   tts?: {
     provider: TtsProvider;
     edge?: { secretKey: string; trustedToken: string };
-    volcano?: { appId: string; accessToken: string };
+    volcano?: { apiKey?: string; appId?: string; accessToken?: string; cluster?: string };
     openai?: { apiKey: string; model: string };
     defaultSpeaker?: string;
   };
   publicURL?: string;
+  webSearch: WebSearchConfig;
 }
 
 export interface SecretStatus {
   openaiApiKey: boolean;
+  webSearchApiKey: boolean;
   ttsEdgeSecretKey: boolean;
   ttsEdgeTrustedToken: boolean;
   ttsVolcanoAccessToken: boolean;
+  ttsVolcanoApiKey: boolean;
   ttsOpenaiApiKey: boolean;
   speakers: Record<string, { password: boolean; passToken: boolean }>;
 }
@@ -73,6 +78,16 @@ const MAX_SECRET = 4096;
 const MAX_PROMPT = 10_000;
 const DEFAULT_BASE_URL = 'https://api.openai.com/v1';
 const DEFAULT_MODEL = 'gpt-4o-mini';
+const DEFAULT_SEARCH_ENDPOINT = 'https://api.tavily.com/search';
+const DEFAULT_SEARCH_CONFIG: WebSearchConfig = {
+  enabled: false,
+  decision: 'model',
+  endpoint: DEFAULT_SEARCH_ENDPOINT,
+  apiKey: '',
+  maxResults: 5,
+  timeoutMs: 8000,
+  cacheTtlSeconds: 600,
+};
 
 function asRecord(value: unknown, field: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -130,18 +145,59 @@ function readThinkingLevel(value: unknown): ThinkingLevel {
   return level as ThinkingLevel;
 }
 
-function readTtsCommand(value: unknown): [number, number] | undefined {
-  if (value === undefined || value === null) return undefined;
+function readCommand(
+  value: unknown,
+  field: 'ttsCommand' | 'wakeUpCommand',
+  fallback: [number, number] | null,
+): [number, number] | null {
+  if (value === undefined) return fallback;
+  if (value === null) return null;
+  if (field === 'ttsCommand' && Array.isArray(value) && value.length === 2 && value[0] === 5 && value[1] === 1) {
+    return [5, 3];
+  }
   if (!Array.isArray(value) || value.length !== 2) {
-    throw new Error('ttsCommand must contain exactly two numbers');
+    throw new Error(`${field} must contain exactly two numbers`);
   }
   const values = value.map((item) => {
     if (!Number.isInteger(item) || Number(item) < 0 || Number(item) > 10_000) {
-      throw new Error('ttsCommand values must be integers between 0 and 10000');
+      throw new Error(`${field} values must be integers between 0 and 10000`);
     }
     return Number(item);
   });
   return [values[0], values[1]];
+}
+
+function readWebSearch(value: unknown): WebSearchConfig {
+  if (value === undefined || value === null) return { ...DEFAULT_SEARCH_CONFIG };
+  const source = asRecord(value, 'webSearch');
+  const endpoint = readOptionalUrl(source.endpoint, 'webSearch.endpoint') ?? DEFAULT_SEARCH_ENDPOINT;
+  const endpointUrl = new URL(endpoint);
+  if (endpointUrl.protocol !== 'https:' || endpointUrl.hostname !== 'api.tavily.com') {
+    throw new Error('webSearch.endpoint must be https://api.tavily.com/search');
+  }
+  const decision = readString(source.decision, 'webSearch.decision', 20) || 'model';
+  if (decision !== 'model') throw new Error('webSearch.decision must be model');
+  const maxResults = source.maxResults === undefined ? 5 : source.maxResults;
+  const timeoutMs = source.timeoutMs === undefined ? 8000 : source.timeoutMs;
+  const cacheTtlSeconds = source.cacheTtlSeconds === undefined ? 600 : source.cacheTtlSeconds;
+  if (!Number.isInteger(maxResults) || Number(maxResults) < 1 || Number(maxResults) > 10) {
+    throw new Error('webSearch.maxResults must be an integer between 1 and 10');
+  }
+  if (!Number.isInteger(timeoutMs) || Number(timeoutMs) < 2000 || Number(timeoutMs) > 15000) {
+    throw new Error('webSearch.timeoutMs must be an integer between 2000 and 15000');
+  }
+  if (!Number.isInteger(cacheTtlSeconds) || Number(cacheTtlSeconds) < 0 || Number(cacheTtlSeconds) > 3600) {
+    throw new Error('webSearch.cacheTtlSeconds must be an integer between 0 and 3600');
+  }
+  return {
+    enabled: readBoolean(source.enabled, 'webSearch.enabled', false),
+    decision: 'model',
+    endpoint,
+    apiKey: readString(source.apiKey, 'webSearch.apiKey', MAX_SECRET),
+    maxResults: Number(maxResults),
+    timeoutMs: Number(timeoutMs),
+    cacheTtlSeconds: Number(cacheTtlSeconds),
+  };
 }
 
 function readKeywords(value: unknown): string[] {
@@ -253,6 +309,9 @@ export function defaultConfig(): WebConfig {
         voiceControl: true,
       },
     ],
+    ttsCommand: [5, 3],
+    wakeUpCommand: [5, 1],
+    webSearch: { ...DEFAULT_SEARCH_CONFIG },
   };
 }
 
@@ -279,7 +338,9 @@ function normalizeConfig(input: unknown): WebConfig {
     callAIKeywords: readKeywords(root.callAIKeywords),
     models: [],
     speakers,
-    ttsCommand: readTtsCommand(root.ttsCommand),
+    ttsCommand: readCommand(root.ttsCommand, 'ttsCommand', [5, 3]),
+    wakeUpCommand: readCommand(root.wakeUpCommand, 'wakeUpCommand', [5, 1]),
+    webSearch: readWebSearch(root.webSearch),
   };
   config.models = readModels(root.models, defaultModel, speakers);
 
@@ -301,8 +362,10 @@ function normalizeConfig(input: unknown): WebConfig {
       if (tts.volcano !== undefined) {
         const volcano = asRecord(tts.volcano, 'tts.volcano');
         config.tts.volcano = {
+          apiKey: readString(volcano.apiKey, 'tts.volcano.apiKey', MAX_SECRET),
           appId: readString(volcano.appId, 'tts.volcano.appId', MAX_SHORT),
           accessToken: readString(volcano.accessToken, 'tts.volcano.accessToken', MAX_SECRET),
+          cluster: readString(volcano.cluster, 'tts.volcano.cluster', MAX_SHORT) || 'volcano_tts',
         };
       }
       if (tts.openai !== undefined) {
@@ -336,6 +399,7 @@ function preserveSecret(next: string, current: string | undefined): string {
 
 function mergeSecrets(next: WebConfig, current: WebConfig): WebConfig {
   next.openai.apiKey = preserveSecret(next.openai.apiKey, current.openai.apiKey);
+  next.webSearch.apiKey = preserveSecret(next.webSearch.apiKey, current.webSearch.apiKey);
   const currentById = new Map(current.speakers.map((speaker) => [speaker.id, speaker]));
   for (const speaker of next.speakers) {
     const existing = currentById.get(speaker.id);
@@ -355,11 +419,15 @@ function mergeSecrets(next: WebConfig, current: WebConfig): WebConfig {
     }
     if (!next.tts.volcano) {
       next.tts.volcano = {
+        apiKey: current.tts?.volcano?.apiKey ?? '',
         appId: '',
         accessToken: current.tts?.volcano?.accessToken ?? '',
+        cluster: current.tts?.volcano?.cluster ?? 'volcano_tts',
       };
     } else {
+      next.tts.volcano.apiKey = preserveSecret(next.tts.volcano.apiKey, current.tts?.volcano?.apiKey);
       next.tts.volcano.accessToken = preserveSecret(next.tts.volcano.accessToken, current.tts?.volcano?.accessToken);
+      next.tts.volcano.cluster = next.tts.volcano.cluster || 'volcano_tts';
     }
     if (!next.tts.openai) {
       next.tts.openai = { apiKey: current.tts?.openai?.apiKey ?? '', model: 'tts-1' };
@@ -453,19 +521,25 @@ export function publicConfig(config: WebConfig): {
 
   const secretsConfigured: SecretStatus = {
     openaiApiKey: Boolean(clone.openai.apiKey),
+    webSearchApiKey: Boolean(clone.webSearch.apiKey),
     ttsEdgeSecretKey: Boolean(clone.tts?.edge?.secretKey),
     ttsEdgeTrustedToken: Boolean(clone.tts?.edge?.trustedToken),
     ttsVolcanoAccessToken: Boolean(clone.tts?.volcano?.accessToken),
+    ttsVolcanoApiKey: Boolean(clone.tts?.volcano?.apiKey),
     ttsOpenaiApiKey: Boolean(clone.tts?.openai?.apiKey),
     speakers: speakerSecrets,
   };
 
   clone.openai.apiKey = '';
+  clone.webSearch.apiKey = '';
   if (clone.tts?.edge) {
     clone.tts.edge.secretKey = '';
     clone.tts.edge.trustedToken = '';
   }
-  if (clone.tts?.volcano) clone.tts.volcano.accessToken = '';
+  if (clone.tts?.volcano) {
+    clone.tts.volcano.accessToken = '';
+    clone.tts.volcano.apiKey = '';
+  }
   if (clone.tts?.openai) clone.tts.openai.apiKey = '';
 
   return { config: clone, secretsConfigured };
