@@ -12,7 +12,6 @@
 </div>
 
 > [!IMPORTANT]
-> readme暂未更新，需要联网搜索请勿按照下方操作！
 > 这是非官方社区项目，与小米及任何 AI 厂商均无隶属关系。小米接口发生变化时，功能可能暂时失效。不要将管理端口直接暴露到公网。
 
 ## ✨ 主要功能
@@ -77,30 +76,27 @@ http://你的NAS或服务器IP:36592
 cat data/secrets/auth_password
 ```
 
-### 方式二：直接运行镜像
+### 方式二：Node.js直接运行
 
-```bash
-docker run -d \
-  --name mi-paiai \
-  --restart unless-stopped \
-  -p 36592:36592 \
-  --read-only \
-  --tmpfs /tmp:rw,noexec,nosuid,nodev,size=16m \
-  --cap-drop ALL \
-  --security-opt no-new-privileges=true \
-  --memory 512m \
-  --pids-limit 200 \
-  -e NODE_ENV=production \
-  -e MIPAIAI_CONFIG_DIR=/app/config \
-  -e AUTH_USERNAME_FILE=/run/secrets/auth_username \
-  -e AUTH_PASSWORD_FILE=/run/secrets/auth_password \
-  -e AUTH_SECRET_FILE=/run/secrets/auth_secret \
-  -v "$PWD/data/config:/app/config" \
-  -v "$PWD/data/secrets:/run/secrets:ro" \
-  ghcr.io/clawpai/mi-paiai:latest
+首先，在你的项目里安装 `@mi-gpt/next` 依赖
+
+```shell
+pnpm install @mi-gpt/next
 ```
 
-> 小米 NAS、部分路由器系统或 Docker bridge 无法访问外网时，可改用 `--network host`，并删除 `-p 36592:36592`。不要修改 NAS 的官方 Docker daemon、DNS、路由或防火墙。
+```typescript
+pnpm install --frozen-lockfile
+pnpm build
+
+New-Item -ItemType Directory -Force data\config | Out-Null
+
+$env:AUTH_USERNAME = "admin"
+$env:AUTH_PASSWORD = "自己设置一个至少12位的密码"
+$env:AUTH_SECRET = "自己设置一个至少32位的随机字符串"
+$env:MIPAIAI_CONFIG_DIR = "$PWD\data\config"
+
+node apps\web\dist\index.js
+```
 
 ## 🛠️ 第一次配置
 
@@ -140,13 +136,13 @@ docker run -d \
 
 控制台内置多组预设：
 
-| 类型 | 示例 |
-|---|---|
-| 聚合 / 中转 | Sub2API、New API、One API、OpenCode、OpenRouter、AiHubMix |
-| 国际主流 | OpenAI、Anthropic、Gemini、Grok、Mistral、Groq、Perplexity、Cohere、Together、NVIDIA NIM |
-| 国内主流 | DeepSeek、GLM、通义千问、Kimi、MiniMax、豆包、腾讯混元、硅基流动、魔搭 |
-| 本地 / 自建 | Ollama、LM Studio、vLLM、SGLang、Azure OpenAI |
-| 其他 | 任意 OpenAI 兼容接口 |
+| 类型        | 示例                                                                                     |
+| ----------- | ---------------------------------------------------------------------------------------- |
+| 聚合 / 中转 | Sub2API、New API、One API、OpenCode、OpenRouter、AiHubMix                                |
+| 国际主流    | OpenAI、Anthropic、Gemini、Grok、Mistral、Groq、Perplexity、Cohere、Together、NVIDIA NIM |
+| 国内主流    | DeepSeek、GLM、通义千问、Kimi、MiniMax、豆包、腾讯混元、硅基流动、魔搭                   |
+| 本地 / 自建 | Ollama、LM Studio、vLLM、SGLang、Azure OpenAI                                            |
+| 其他        | 任意 OpenAI 兼容接口                                                                     |
 
 预设地址可能随厂商调整；所有地址都可在控制台中编辑。部分模型不支持 `reasoning_effort`，遇到 HTTP 400 时请把思考等级改为“默认”。
 
@@ -160,7 +156,7 @@ docker run -d \
 
 详情见 [安全说明](./docs/SECURITY.md)。
 
-## 📚 文档
+## 📚 文档（未更新）
 
 - [完整安装教程](./docs/INSTALLATION.md)
 - [配置与厂商教程](./docs/CONFIGURATION.md)
@@ -184,7 +180,7 @@ pnpm build
 
 ## 🙏 上游与署名
 
-`mi-paiai` 是一个独立维护的衍生项目：
+`mi-paiai-next` 是一个独立维护的衍生项目：
 
 - 最初的 Web/CLI 单仓结构改自 [`zhuzhu88920/migpt-ultimate`](https://github.com/zhuzhu88920/migpt-ultimate)。
 - 该项目及本项目继续基于 [`idootop/migpt-next`](https://github.com/idootop/migpt-next) 和 `@mi-gpt/*` npm 包。
@@ -195,3 +191,4 @@ pnpm build
 ## 📄 许可证
 
 MIT License。详见 [LICENSE](./LICENSE)。
+
