@@ -7,6 +7,7 @@ import { createTavilySearchClient, formatSearchContext, type SearchResult } from
 import type { WebSearchConfig } from './web-search.js';
 import { parseSearchRoute, type SearchRoute } from './search-decision.js';
 import { leaveWakeState, playMiOTWithFallback, prepareForSpeech, stopCurrentPlayback } from './speech.js';
+import { createMessageDedupe } from './message-dedupe.js';
 
 interface WorkerInput {
   speaker: SpeakerConfig;
@@ -49,6 +50,7 @@ interface VoiceEngine {
 let input: WorkerInput | undefined;
 let runtime = { model: '', models: [] as string[], thinkingLevel: 'default' as ThinkingLevel, voiceControl: true };
 let speakGeneration = 0;
+const messageDedupe = createMessageDedupe();
 const searchCache = new Map<string, { expiresAt: number; results: SearchResult[] }>();
 
 function normalizeQuestion(value: string): string {
@@ -272,6 +274,16 @@ async function onMessage(
 
   if (!input.callAIKeywords.some((keyword) => msg.text.startsWith(keyword))) return undefined;
 
+  // The device conversation history can hold one utterance as two records, and
+  // the upstream poller releases queued records one per heartbeat tick, so each
+  // delivery would start its own model call. Voice commands above are exempt so
+  // that repeating a command still works.
+  const verdict = messageDedupe.check({ text: msg.text, timestamp: msg.timestamp });
+  if (verdict.duplicate) {
+    sendLog('system', `↩️ 忽略重复投递（本次 ${msg.timestamp}，首次 ${verdict.firstTimestamp}）`);
+    return { handled: true };
+  }
+
   try {
     applySelection();
     await stopCurrentPlayback({
@@ -279,6 +291,11 @@ async function onMessage(
       stopMiNA: () => engine.MiNA.stop(),
       stopMiOT: () => engine.MiOT.doAction(3, 4),
     });
+    // Pause as early as possible, before the model call: judging plus searching
+    // plus answering can take several seconds, and the device would otherwise
+    // keep playing its own answer for that whole time.
+    const pausedEarly = await leaveWakeState({ pauseMiNA: () => engine.MiNA.pause() });
+    sendLog('system', `TTS 提前退出聆听：暂停=${String(pausedEarly)}`);
     const text = await chatWithOptionalSearch(msg);
     if (!text) return { handled: true };
     sendLog('ai', `🤖 ${input.speaker.name}：${text}`);
